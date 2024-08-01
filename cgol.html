@@ -1,0 +1,168 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Conway's Game of Life</title>
+    <style>
+        canvas {
+            border: 1px solid black;
+            display: block;
+            margin: auto;
+            background-color: #f0f0f0;
+        }
+        #controls {
+            text-align: center;
+            margin-bottom: 10px;
+        }
+        #controls button {
+            margin: 0 5px;
+        }
+    </style>
+</head>
+<body>
+    <div id="controls">
+        <button onclick="start()">Start</button>
+        <button onclick="stop()">Stop</button>
+        <button onclick="clearGrid()">Clear</button>
+        <button onclick="randomize()">Randomize</button>
+        <button onclick="placePattern('blinker')">Place Blinker</button>
+        <button onclick="placePattern('glider')">Place Glider</button>
+    </div>
+    <canvas id="gameCanvas" width="600" height="400"></canvas>
+    <script>
+        const canvas = document.getElementById('gameCanvas');
+        const ctx = canvas.getContext('2d');
+        const cellSize = 10;
+        const rows = canvas.height / cellSize;
+        const cols = canvas.width / cellSize;
+        let grid = Array(rows).fill(null).map(() => Array(cols).fill(false));
+        let intervalId;
+
+        function drawGrid() {
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            ctx.strokeStyle = '#ccc';
+            for (let y = 0; y <= rows; y++) {
+                ctx.beginPath();
+                ctx.moveTo(0, y * cellSize);
+                ctx.lineTo(canvas.width, y * cellSize);
+                ctx.stroke();
+            }
+            for (let x = 0; x <= cols; x++) {
+                ctx.beginPath();
+                ctx.moveTo(x * cellSize, 0);
+                ctx.lineTo(x * cellSize, canvas.height);
+                ctx.stroke();
+            }
+        }
+
+        function drawCells() {
+            ctx.fillStyle = 'black';
+            for (let y = 0; y < rows; y++) {
+                for (let x = 0; x < cols; x++) {
+                    if (grid[y][x]) {
+                        ctx.fillRect(x * cellSize, y * cellSize, cellSize, cellSize);
+                    }
+                }
+            }
+        }
+
+        function updateGrid() {
+            const newGrid = Array(rows).fill(null).map(() => Array(cols).fill(false));
+            for (let y = 0; y < rows; y++) {
+                for (let x = 0; x < cols; x++) {
+                    const alive = grid[y][x];
+                    const neighbors = countAliveNeighbors(x, y);
+                    if (alive && (neighbors === 2 || neighbors === 3)) {
+                        newGrid[y][x] = true;
+                    } else if (!alive && neighbors === 3) {
+                        newGrid[y][x] = true;
+                    }
+                }
+            }
+            grid = newGrid;
+        }
+
+        function countAliveNeighbors(x, y) {
+            const neighbors = [
+                [-1, -1], [-1, 0], [-1, 1],
+                [0, -1],          [0, 1],
+                [1, -1], [1, 0], [1, 1]
+            ];
+            let count = 0;
+            for (const [dx, dy] of neighbors) {
+                const nx = x + dx;
+                const ny = y + dy;
+                if (nx >= 0 && ny >= 0 && nx < cols && ny < rows) {
+                    count += grid[ny][nx] ? 1 : 0;
+                }
+            }
+            return count;
+        }
+
+        function start() {
+            if (intervalId) return;
+            intervalId = setInterval(() => {
+                updateGrid();
+                drawGrid();
+                drawCells();
+            }, 100);
+        }
+
+        function stop() {
+            if (intervalId) {
+                clearInterval(intervalId);
+                intervalId = null;
+            }
+        }
+
+        function clearGrid() {
+            grid = Array(rows).fill(null).map(() => Array(cols).fill(false));
+            drawGrid();
+            drawCells();
+        }
+
+        function randomize() {
+            for (let y = 0; y < rows; y++) {
+                for (let x = 0; x < cols; x++) {
+                    grid[y][x] = Math.random() > 0.7; // ~30% chance to be alive
+                }
+            }
+            drawGrid();
+            drawCells();
+        }
+
+        function placePattern(pattern) {
+            clearGrid();
+            let startX = Math.floor(cols / 4);
+            let startY = Math.floor(rows / 4);
+            if (pattern === 'blinker') {
+                // Vertical blinker
+                grid[startY][startX] = true;
+                grid[startY][startX + 1] = true;
+                grid[startY][startX + 2] = true;
+            } else if (pattern === 'glider') {
+                // Glider pattern
+                grid[startY][startX + 1] = true;
+                grid[startY + 1][startX + 2] = true;
+                grid[startY + 2][startX] = true;
+                grid[startY + 2][startX + 1] = true;
+                grid[startY + 2][startX + 2] = true;
+            }
+            drawGrid();
+            drawCells();
+        }
+
+        canvas.addEventListener('click', (e) => {
+            const rect = canvas.getBoundingClientRect();
+            const x = Math.floor((e.clientX - rect.left) / cellSize);
+            const y = Math.floor((e.clientY - rect.top) / cellSize);
+            grid[y][x] = !grid[y][x];
+            drawGrid();
+            drawCells();
+        });
+
+        drawGrid();
+    </script>
+</body>
+</html>
